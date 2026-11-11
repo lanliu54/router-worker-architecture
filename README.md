@@ -2,6 +2,42 @@
 
 A Windows migration package for a Codex Router–Worker setup. It coordinates a primary session and named subscription workers, with a local controller in observe mode. This is a user-maintained project, not an official OpenAI product.
 
+## Architecture and task flow
+
+```mermaid
+flowchart TD
+    User([User request]) --> Root["Primary session · Terra / high<br/>Scope, coordination, UI and acceptance"]
+    Root --> Scope["Classify work and prepare<br/>bounded task context"]
+    Scope -->|"Built-in spawn_agent<br/>named role · independent context"| Route{"Select a worker<br/>when appropriate"}
+
+    Route -->|Implementation| Sol["Sol execution<br/>Implement and test"]
+    Route -->|Independent review| QA["Sol QA<br/>Review in a separate session"]
+    Route -->|Bounded batch| Luna["Luna<br/>Fixed-process work"]
+    Route -->|Difficult analysis| Astra["Astra<br/>Advisory review and planning"]
+
+    Sol --> Results["Worker results and evidence"]
+    QA --> Results
+    Luna --> Results
+    Astra --> Results
+    Results --> Verify["Primary session verifies results,<br/>integrates and decides acceptance"]
+    Verify --> Output(["Deliver result to user"])
+
+    Hooks["Routing Hooks<br/>Observe supported tool events"] -.->|"Observed events"| Controller["Local Controller<br/>Observe mode · dispatch disabled"]
+    Scope -.->|"Supported events"| Hooks
+    Controller -.->|"Status and inbox"| Root
+
+    classDef primary fill:#e5efff,stroke:#386ac3,color:#152e58,stroke-width:2px;
+    classDef worker fill:#e7f7f3,stroke:#248573,color:#123e36;
+    classDef observe fill:#fff5df,stroke:#b9801e,color:#593a08,stroke-dasharray: 5 5;
+    classDef output fill:#f0eafe,stroke:#8063b8,color:#35264d;
+    class Root,Scope,Verify primary;
+    class Sol,QA,Luna,Astra worker;
+    class Hooks,Controller observe;
+    class User,Output output;
+```
+
+The primary session owns the final decision. A worker is selected only when the task and host support that route; Sol QA is separate from the implementation author. Astra is advisory. Hook observations and Controller status are evidence of observed events, not proof of acceptance. The retired Worker API route is not used for new tasks.
+
 ## Download
 
 [Download the v3.0.10 Windows migration package](router-worker-windows-v3.0.10.zip).
